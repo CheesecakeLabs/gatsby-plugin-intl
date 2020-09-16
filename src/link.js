@@ -6,8 +6,10 @@ import { IntlContextConsumer } from "./intl-context"
 const Link = ({ to, language, children, onClick, ...rest }) => (
   <IntlContextConsumer>
     {intl => {
-      const languageLink = language || intl.language
-      const link = intl.routed || language ? `/${languageLink}${to}` : `${to}`
+      const toLanguage = language || intl.language
+      const toLanguagePrefix = intl.languageToPrefix[toLanguage]
+      const link =
+        intl.routed || language ? `/${toLanguagePrefix}${to}` : `${to}`
 
       const handleClick = e => {
         if (language) {
@@ -44,8 +46,8 @@ export const navigate = (to, options) => {
     return
   }
 
-  const { language, routed } = window.___gatsbyIntl
-  const link = routed ? `/${language}${to}` : `${to}`
+  const { language, languageToPrefix, routed } = window.___gatsbyIntl
+  const link = routed ? `/${languageToPrefix[language]}${to}` : `${to}`
   gatsbyNavigate(link, options)
 }
 
@@ -53,7 +55,7 @@ export const changeLocale = (language, to) => {
   if (typeof window === "undefined") {
     return
   }
-  const { routed } = window.___gatsbyIntl
+  const { routed, languageToPrefix } = window.___gatsbyIntl
 
   const removePrefix = pathname => {
     const base =
@@ -75,7 +77,7 @@ export const changeLocale = (language, to) => {
   const pathname =
     to || removeLocalePart(removePrefix(window.location.pathname))
   // TODO: check slash
-  const link = `/${language}${pathname}${window.location.search}`
+  const link = `/${languageToPrefix[language]}${pathname}${window.location.search}`
   localStorage.setItem("gatsby-intl-language", language)
   gatsbyNavigate(link)
 }

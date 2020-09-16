@@ -15,11 +15,44 @@ function flattenMessages(nestedMessages, prefix = "") {
   }, {})
 }
 
-exports.onCreateWebpackConfig = ({ actions, plugins }, pluginOptions) => {
-  const { redirectComponent = null, languages, defaultLanguage } = pluginOptions
-  if (!languages.includes(defaultLanguage)) {
-    languages.push(defaultLanguage)
+function formatLanguageOptions(optionLanguages) {
+  const languages = optionLanguages.map(language => {
+    if (typeof language === "string") {
+      return { locale: language, prefix: language }
+    }
+    return language
+  })
+
+  const languageToPrefix = languages.reduce((map, language) => {
+    map[language.locale] = language.prefix
+    return map
+  }, {})
+
+  const prefixToLanguage = languages.reduce((map, language) => {
+    map[language.prefix] = language.locale
+    return map
+  }, {})
+
+  return {
+    languageToPrefix,
+    prefixToLanguage,
+    languages: Object.keys(languageToPrefix),
+    prefixes: Object.keys(prefixToLanguage),
   }
+}
+
+exports.onCreateWebpackConfig = ({ actions, plugins }, pluginOptions) => {
+  const {
+    redirectComponent = null,
+    languages: optionLanguages,
+    defaultLanguage,
+  } = pluginOptions
+  if (!optionLanguages.includes(defaultLanguage)) {
+    optionLanguages.push(defaultLanguage)
+  }
+
+  const { languages } = formatLanguageOptions(optionLanguages)
+
   const regex = new RegExp(languages.map(l => l.split("-")[0]).join("|"))
   actions.setWebpackConfig({
     plugins: [
@@ -46,10 +79,12 @@ exports.onCreatePage = async ({ page, actions }, pluginOptions) => {
   const { createPage, deletePage } = actions
   const {
     path = ".",
-    languages = ["en"],
+    languages: optionLanguages = ["en"],
     defaultLanguage = "en",
     redirect = false,
   } = pluginOptions
+
+  const { languageToPrefix, languages } = formatLanguageOptions(optionLanguages)
 
   const getMessages = (path, language) => {
     try {
@@ -71,7 +106,9 @@ exports.onCreatePage = async ({ page, actions }, pluginOptions) => {
 
   const generatePage = (routed, language) => {
     const messages = getMessages(path, language)
-    const newPath = routed ? `/${language}${page.path}` : page.path
+    const newPath = routed
+      ? `/${languageToPrefix[language]}${page.path}`
+      : page.path
     return {
       ...page,
       path: newPath,
@@ -81,6 +118,7 @@ exports.onCreatePage = async ({ page, actions }, pluginOptions) => {
         intl: {
           language,
           languages,
+          languageToPrefix,
           messages,
           routed,
           originalPath: page.path,
@@ -99,7 +137,7 @@ exports.onCreatePage = async ({ page, actions }, pluginOptions) => {
     const localePage = generatePage(true, language)
     const regexp = new RegExp("/404/?$")
     if (regexp.test(localePage.path)) {
-      localePage.matchPath = `/${language}/*`
+      localePage.matchPath = `/${languageToPrefix[language]}/*`
     }
     createPage(localePage)
   })
