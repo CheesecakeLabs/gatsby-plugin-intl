@@ -78,6 +78,7 @@ exports.onCreatePage = async ({ page, actions }, pluginOptions) => {
     languages: optionLanguages = ["en"],
     defaultLanguage = "en",
     redirect = false,
+    prefixDefaultLanguage = true,
   } = pluginOptions
 
   const { languageToPrefix, languages } = formatLanguageOptions(optionLanguages)
@@ -118,6 +119,8 @@ exports.onCreatePage = async ({ page, actions }, pluginOptions) => {
           routed,
           originalPath: page.path,
           redirect,
+          defaultLanguage,
+          prefixDefaultLanguage,
         },
       },
     }

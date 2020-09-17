@@ -46,6 +46,8 @@ export default ({ element, props }) => {
     redirect,
     routed,
     originalPath,
+    defaultLanguage,
+    prefixDefaultLanguage,
   } = intl
 
   if (typeof window !== "undefined") {
@@ -53,6 +55,7 @@ export default ({ element, props }) => {
   }
   /* eslint-disable no-undef */
   const isRedirect = redirect && !routed
+  let redirectDefault = false
 
   if (isRedirect) {
     const { search } = location
@@ -75,14 +78,18 @@ export default ({ element, props }) => {
         `/${languageToPrefix[detected]}${originalPath}${queryParams}`
       )
       window.localStorage.setItem("gatsby-intl-language", detected)
-      window.location.replace(newUrl)
+      redirectDefault = prefixDefaultLanguage || detected !== defaultLanguage
+      if (redirectDefault) {
+        window.location.replace(newUrl)
+      }
     }
   }
-  const renderElement = isRedirect
-    ? GATSBY_INTL_REDIRECT_COMPONENT_PATH &&
-      React.createElement(
-        preferDefault(require(GATSBY_INTL_REDIRECT_COMPONENT_PATH))
-      )
-    : element
+  const renderElement =
+    isRedirect && redirectDefault
+      ? GATSBY_INTL_REDIRECT_COMPONENT_PATH &&
+        React.createElement(
+          preferDefault(require(GATSBY_INTL_REDIRECT_COMPONENT_PATH))
+        )
+      : element
   return withIntlProvider(intl)(renderElement)
 }
