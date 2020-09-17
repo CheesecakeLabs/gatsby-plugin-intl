@@ -23,7 +23,7 @@ const polyfillIntl = language => {
   }
 }
 
-const withIntlProvider = (intl) => children => {
+const withIntlProvider = intl => children => {
   polyfillIntl(intl.language)
   return (
     <IntlProvider
@@ -51,6 +51,7 @@ export default ({ element, props }, pluginOptions) => {
     redirect,
     routed,
     originalPath,
+    prefixDefaultLanguage,
   } = intl
 
   if (typeof window !== "undefined") {
@@ -58,6 +59,7 @@ export default ({ element, props }, pluginOptions) => {
   }
   /* eslint-disable no-undef */
   const isRedirect = redirect && !routed
+  let redirectDefault = false
 
   if (isRedirect) {
     const { search } = location
@@ -80,14 +82,18 @@ export default ({ element, props }, pluginOptions) => {
         `/${languageToPrefix[detected]}${originalPath}${queryParams}`
       )
       window.localStorage.setItem("gatsby-intl-language", detected)
-      window.location.replace(newUrl)
+      redirectDefault = prefixDefaultLanguage || detected !== defaultLanguage
+      if (redirectDefault) {
+        window.location.replace(newUrl)
+      }
     }
   }
-  const renderElement = isRedirect
-    ? GATSBY_INTL_REDIRECT_COMPONENT_PATH &&
-      React.createElement(
-        preferDefault(require(GATSBY_INTL_REDIRECT_COMPONENT_PATH))
-      )
-    : element
+  const renderElement =
+    isRedirect && redirectDefault
+      ? GATSBY_INTL_REDIRECT_COMPONENT_PATH &&
+        React.createElement(
+          preferDefault(require(GATSBY_INTL_REDIRECT_COMPONENT_PATH))
+        )
+      : element
   return withIntlProvider(intl)(renderElement)
 }
